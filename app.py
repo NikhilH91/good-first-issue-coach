@@ -75,7 +75,7 @@ def analyze_issue(client, issue_title, issue_body, repo_name):
     5. **Drafted Pull Request Body**: Ready-to-copy PR description.
     """
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         contents=prompt
     )
     return response.text
