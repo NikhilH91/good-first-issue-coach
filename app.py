@@ -9,16 +9,19 @@ st.set_page_config(page_title="Good First Issue Coach", page_icon="🌱", layout
 st.title("🌱 Good First Issue Coach")
 st.caption("AI-powered guide to help beginners conquer their first open-source PR.")
 
-# 1. Automatic Key Retrieval: Checks secrets/environment first, falls back to sidebar if missing
-api_key = os.environ.get("GEMINI_API_KEY")
-if not api_key and "GEMINI_API_KEY" in st.secrets:
-    api_key = st.secrets["GEMINI_API_KEY"]
+# 1. Safe secret and environment variable loading
+api_key = os.environ.get("GEMINI_API_KEY", "")
+github_token = os.environ.get("GITHUB_TOKEN", "")
 
-github_token = os.environ.get("GITHUB_TOKEN")
-if not github_token and "GITHUB_TOKEN" in st.secrets:
-    github_token = st.secrets["GITHUB_TOKEN"]
+try:
+    if not api_key and "GEMINI_API_KEY" in st.secrets:
+        api_key = st.secrets["GEMINI_API_KEY"]
+    if not github_token and "GITHUB_TOKEN" in st.secrets:
+        github_token = st.secrets["GITHUB_TOKEN"]
+except Exception:
+    pass
 
-# Only show sidebar if API key is not pre-configured
+# Show sidebar for input if key is not configured in the background
 if not api_key:
     with st.sidebar:
         st.header("Settings")
@@ -31,7 +34,6 @@ repo_url = st.text_input(
 )
 
 def extract_owner_repo(url):
-    # Matches github.com/owner/repo even with trailing slashes or subpages
     match = re.search(r"github\.com/([^/]+)/([^/\s?#]+)", url.strip())
     if match:
         owner = match.group(1)
@@ -51,7 +53,7 @@ def fetch_issues(owner, repo, token=None):
     if resp.status_code == 200:
         return [i for i in resp.json() if "pull_request" not in i]
     elif resp.status_code == 403:
-        st.error("GitHub API rate limit reached. Add a GitHub Token to continue.")
+        st.error("GitHub API rate limit reached. Please provide a GitHub Token.")
     elif resp.status_code == 404:
         st.error(f"Repository '{owner}/{repo}' not found or is private.")
     return []
@@ -80,13 +82,13 @@ def analyze_issue(client, issue_title, issue_body, repo_name):
 
 if st.button("Find & Coach Issues", type="primary"):
     if not api_key:
-        st.error("Please provide a Gemini API Key to run the coach.")
+        st.error("Please enter your Gemini API Key in the sidebar.")
     elif not repo_url.strip():
-        st.warning("Please type or paste a GitHub repository link.")
+        st.warning("Please enter a GitHub repository URL.")
     else:
         owner, repo = extract_owner_repo(repo_url)
         if not owner or not repo:
-            st.error("Please enter a full repository link, e.g., https://github.com/pallets/flask (not just a user profile).")
+            st.error("Please enter a valid repository URL, e.g., https://github.com/pallets/flask")
         else:
             with st.spinner(f"Fetching open issues from {owner}/{repo}..."):
                 issues = fetch_issues(owner, repo, github_token)
@@ -97,9 +99,8 @@ if st.button("Find & Coach Issues", type="primary"):
                 
                 for idx, issue in enumerate(issues, start=1):
                     with st.expander(f"#{issue['number']}: {issue['title']}", expanded=(idx == 1)):
-                        st.markdown(f"[🔗 View original issue on GitHub]({issue['html_url']})")
+                        st.markdown(f"[🔗 View issue on GitHub]({issue['html_url']})")
                         with st.spinner("Analyzing this issue..."):
                             advice = analyze_issue(client, issue['title'], issue['body'], f"{owner}/{repo}")
                             st.markdown(advice)
-            elif issues == []:
-                st.info("No open issues found in this repository.")
+            elif is
