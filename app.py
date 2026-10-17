@@ -103,4 +103,5 @@ if st.button("Find & Coach Issues", type="primary"):
                         with st.spinner("Analyzing this issue..."):
                             advice = analyze_issue(client, issue['title'], issue['body'], f"{owner}/{repo}")
                             st.markdown(advice)
-            elif is
+            else:
+                st.info("No open issues found in this repository.")
